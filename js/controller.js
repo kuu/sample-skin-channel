@@ -27,6 +27,8 @@ OO.plugin("Html5Skin", function (OO, _, $, W) {
     this.state = {
       "playerParam": {},
       "assetId": null,
+      "currentContentInChannel": 0,
+      "channelList": null,
       "contentTree": {},
       "authorization": {},
       "screenToShow": null,
@@ -477,6 +479,13 @@ OO.plugin("Html5Skin", function (OO, _, $, W) {
         this.state.screenToShow = CONSTANTS.SCREEN.DISCOVERY_SCREEN;
       } else if (this.skin.props.skinConfig.endScreen.screenToShowOnEnd === "share") {
         this.state.screenToShow = CONSTANTS.SCREEN.SHARE_SCREEN;
+      } else if (this.state.channelList) {
+        var channelList = this.state.channelList;
+        if (++this.state.currentContentInChannel >= channelList.length) {
+          this.state.currentContentInChannel = 0;
+        }
+        this.state.screenToShow = CONSTANTS.SCREEN.LOADING_SCREEN;
+        this.mb.publish(OO.EVENTS.SET_EMBED_CODE, channelList[this.state.currentContentInChannel]);
       } else {
         this.state.screenToShow = CONSTANTS.SCREEN.END_SCREEN;
         this.mb.publish(OO.EVENTS.END_SCREEN_SHOWN);
@@ -858,6 +867,14 @@ OO.plugin("Html5Skin", function (OO, _, $, W) {
     },
 
     onErrorEvent: function(event, errorCode){
+      if (errorCode.code === 'channel_content') {
+        $.getJSON('/channel/' + this.state.assetId, _.bind(function(list) {
+          this.state.channelList = list;
+          this.state.currentContentInChannel = 0;
+          this.mb.publish(OO.EVENTS.SET_EMBED_CODE, list[0]);
+        }, this));
+        return;
+      }
       this.unsubscribeBasicPlaybackEvents();
 
       this.state.screenToShow = CONSTANTS.SCREEN.ERROR_SCREEN;

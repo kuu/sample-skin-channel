@@ -19,6 +19,7 @@ var gulp        = require('gulp'),
     open        = require('gulp-open'),
     git         = require('git-rev'),
     realFs      = require('fs'),
+    proxy       = require('http-proxy-middleware'),
     gracefulFs  = require('graceful-fs');
     //Fix OSX EMFILE error
     gracefulFs.gracefulify(realFs);
@@ -176,6 +177,12 @@ gulp.task('pages', function () {
     .pipe(gulp.dest('./build'));
 });
 
+var LocalProxy = proxy('/channel', {
+    target: 'http://localhost:' + (process.env.PORT || 8080),
+    changeOrigin: true, // for vhosted sites, changes host header to match to target's host
+    logLevel: 'debug'
+});
+
 // Local HTTP Server
 gulp.task('server', function() {
   connect.server({
@@ -185,7 +192,10 @@ gulp.task('server', function() {
     },
     host: devServer.host,
     root: devServer.docRoot,
-    fallback: devServer.file
+    fallback: devServer.file,
+    middleware: function(connect, opt) {
+      return [LocalProxy]
+    }
   });
 });
 
